@@ -1,4 +1,4 @@
-from __future__ import annotations
+# from __future__ import annotations
 
 import os
 import sys
@@ -29,7 +29,7 @@ if TYPE_CHECKING:
     from wsgiref.types import WSGIApplication
 
 import bottle
-from typing_extensions import TypedDict, Unpack
+# from typing_extensions import TypedDict, Unpack
 
 from .util import abspath, is_app, is_local_url
 
@@ -55,7 +55,7 @@ def _get_random_port() -> int:
 
 
 class ThreadedAdapter(bottle.ServerAdapter):
-    def run(self, handler: WSGIApplication) -> None:
+    def run(self, handler) -> None:
         if self.quiet:
 
             class QuietHandler(WSGIRequestHandler):
@@ -84,8 +84,8 @@ class BottleServer:
 
     @classmethod
     def start_server(
-        cls, urls: list[str], http_port: int | None, keyfile: None = None, certfile: None = None
-    ) -> tuple[str, str | None, BottleServer]:
+        cls, urls: list, http_port: int, keyfile: None = None, certfile: None = None
+    ) -> tuple:
         from webview import _settings
 
         apps = [u for u in urls if is_app(u)]
@@ -162,7 +162,7 @@ ServerType = TypeVar('ServerType', bound=BottleServer, covariant=True)
 
 
 class SSLWSGIRefServer(bottle.ServerAdapter):
-    def run(self, handler: WSGIApplication) -> None:  # pragma: no cover
+    def run(self, handler) -> None:  # pragma: no cover
         import socket
         from wsgiref.simple_server import WSGIRequestHandler, WSGIServer, make_server
 
@@ -196,27 +196,27 @@ class SSLWSGIRefServer(bottle.ServerAdapter):
             raise
 
 
-class ServerArgs(TypedDict, total=False):
-    keyfile: None
-    certfile: None
+# class ServerArgs(TypedDict, total=False):
+#     keyfile: None
+#     certfile: None
 
 
 def start_server(
-    urls: list[str],
-    http_port: int | None = None,
-    server: type[ServerType] = BottleServer,
-    **server_args: Unpack[ServerArgs],
-) -> tuple[str, str | None, BottleServer]:
+    urls: list,
+    http_port: int = None,
+    server = BottleServer,
+    **server_args,
+) -> tuple:
     server = server if not server is None else BottleServer
     return server.start_server(urls, http_port, **server_args)
 
 
 def start_global_server(
-    http_port: int | None = None,
-    urls: list[str] = ['.'],
-    server: type[ServerType] = BottleServer,
-    **server_args: Unpack[ServerArgs],
-) -> tuple[str, str | None, BottleServer]:
+    http_port: int = None,
+    urls: list = ['.'],
+    server= BottleServer,
+    **server_args,
+) -> tuple:
     global global_server
     address, common_path, global_server = start_server(
         urls=urls, http_port=http_port, server=server, **server_args

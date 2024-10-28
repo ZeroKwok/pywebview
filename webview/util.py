@@ -4,7 +4,7 @@ Licensed under BSD license
 
 http://github.com/r0x0r/pywebview/
 """
-from __future__ import annotations
+# from __future__ import annotations
 
 import inspect
 import json
@@ -44,17 +44,17 @@ DEFAULT_HTML = """
 logger = logging.getLogger('pywebview')
 
 
-def is_app(url: str | None) -> bool:
+def is_app(url: str) -> bool:
     """Returns true if 'url' is a WSGI or ASGI app."""
     return callable(url)
 
 
-def is_local_url(url: str | None) -> bool:
+def is_local_url(url: str) -> bool:
     return not ((is_app(url)) or (
             (not url) or (url.startswith('http://')) or (url.startswith('https://')) or url.startswith('file://')))
 
 
-def needs_server(urls: list[str]) -> bool:
+def needs_server(urls) -> bool:
     return bool([url for url in urls if (is_app(url) or is_local_url(url))])
 
 
@@ -97,7 +97,7 @@ def base_uri(relative_path: str = '') -> str:
     return f'file://{os.path.join(base_path, relative_path)}'
 
 
-def create_cookie(input_: dict[Any, Any] | str) -> SimpleCookie[str]:
+def create_cookie(input_: dict) -> SimpleCookie:
     if isinstance(input_, dict):
         cookie = SimpleCookie[str]()
         name = input_['name']
@@ -119,7 +119,7 @@ def create_cookie(input_: dict[Any, Any] | str) -> SimpleCookie[str]:
     raise WebViewException('Unknown input to create_cookie')
 
 
-def parse_file_type(file_type: str) -> tuple[str, str]:
+def parse_file_type(file_type: str) -> tuple:
     """
     :param file_type: file type string 'description (*.file_extension1;*.file_extension2)' as required by file filter in create_file_dialog
     :return: (description, file extensions) tuple
@@ -132,7 +132,7 @@ def parse_file_type(file_type: str) -> tuple[str, str]:
     raise ValueError(f'{file_type} is not a valid file filter')
 
 
-def inject_pywebview(window: Window, platform: str) -> str:
+def inject_pywebview(window, platform: str) -> str:
     """"
     Generates and injects a global window.pywebview object
     """
@@ -142,7 +142,7 @@ def inject_pywebview(window: Window, platform: str) -> str:
         params = list(inspect.getfullargspec(func).args)
         return params
 
-    def get_functions(obj: object, base_name: str = '', functions: dict[str, object] = None):
+    def get_functions(obj: object, base_name: str = '', functions: dict = None):
         if obj in exposed_objects:
             return functions
         else:
@@ -187,7 +187,7 @@ def inject_pywebview(window: Window, platform: str) -> str:
     return js_code
 
 
-def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) -> None:
+def js_bridge_call(window, func_name: str, param: Any, value_id: str) -> None:
     def _call():
         try:
             result = func(*func_params)
@@ -266,7 +266,7 @@ def js_bridge_call(window: Window, func_name: str, param: Any, value_id: str) ->
         logger.error('Function %s() does not exist', func_name)
 
 
-def load_js_files(window: Window, func_list, platform: str) -> str:
+def load_js_files(window, func_list, platform: str) -> str:
     js_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'js')
     js_files = glob(os.path.join(js_dir, '**', '*.js'), recursive=True)
     ordered_js_files = sort_js_files(js_files)
@@ -302,7 +302,7 @@ def load_js_files(window: Window, func_list, platform: str) -> str:
     return js_code
 
 
-def sort_js_files(js_files: list[str]) -> list[str]:
+def sort_js_files(js_files: list) -> list:
     """
     Sorts JS files in the order they should be loaded. Polyfill first, then API, then the rest and
     finally finish.js that fires a pywebviewready event.

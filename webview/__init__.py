@@ -8,7 +8,7 @@ Licensed under BSD license
 http://github.com/r0x0r/pywebview/
 """
 
-from __future__ import annotations
+# from __future__ import annotations
 
 import datetime
 import logging
@@ -90,26 +90,26 @@ _settings = {
 }
 
 token = _TOKEN
-windows: list[Window] = []
-menus: list[Menu] = []
+windows = []
+menus = []
 
 
 def start(
-    func: Callable[..., None] | None = None,
-    args: Iterable[Any] | None = None,
-    localization: dict[str, str] = {},
-    gui: GUIType | None = None,
+    func = None,
+    args = None,
+    localization: dict = {},
+    gui = None,
     debug: bool = False,
     http_server: bool = False,
-    http_port: int | None = None,
-    user_agent: str | None = None,
+    http_port: int = None,
+    user_agent: str = None,
     private_mode: bool = True,
-    storage_path: str | None = None,
-    menu: list[Menu] = [],
-    server: type[http.ServerType] = http.BottleServer,
-    server_args: dict[Any, Any] = {},
+    storage_path: str = None,
+    menu: list = [],
+    server = http.BottleServer,
+    server_args: dict = {},
     ssl: bool = False,
-    icon: str | None = None,
+    icon: str = None,
 ):
     """
     Start a GUI loop and display previously created windows. This function must
@@ -222,17 +222,17 @@ def start(
 
 def create_window(
     title: str,
-    url: str | None = None,
-    html: str | None = None,
+    url: str = None,
+    html: str = None,
     js_api: Any = None,
     width: int = 800,
     height: int = 600,
-    x: int | None = None,
-    y: int | None = None,
+    x: int = None,
+    y: int = None,
     screen: Screen = None,
     resizable: bool = True,
     fullscreen: bool = False,
-    min_size: tuple[int, int] = (200, 100),
+    min_size: tuple = (200, 100),
     hidden: bool = False,
     frameless: bool = False,
     easy_drag: bool = True,
@@ -248,10 +248,10 @@ def create_window(
     zoomable: bool = False,
     draggable: bool = False,
     vibrancy: bool = False,
-    localization: Mapping[str, str] | None = None,
-    server: type[http.ServerType] = http.BottleServer,
-    http_port: int | None = None,
-    server_args: http.ServerArgs = {},
+    localization = None,
+    server = http.BottleServer,
+    http_port: int = None,
+    server_args = {},
 ) -> Window:
     """
     Create a web view window using a native GUI. The execution blocks after this function is invoked, so other
@@ -405,7 +405,7 @@ def __set_storage_path(storage_path):
     _settings['storage_path'] = storage_path
 
 
-def active_window() -> Window | None:
+def active_window() -> Window:
     """
     Get the active window
 
@@ -417,7 +417,7 @@ def active_window() -> Window | None:
 
 
 @module_property
-def screens() -> list[Screen]:
+def screens() -> list:
     guilib = initialize()
     screens = guilib.get_screens()
     return screens

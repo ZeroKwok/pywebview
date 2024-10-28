@@ -1,4 +1,4 @@
-from __future__ import annotations
+# from __future__ import annotations
 
 import logging
 import os
@@ -7,18 +7,18 @@ import sys
 from types import ModuleType
 from typing import Any, Callable, cast
 
-from typing_extensions import Literal, TypeAlias
+# from typing_extensions import Literal, TypeAlias
 
 from webview import WebViewException
 
-GUIType: TypeAlias = Literal['qt', 'gtk', 'cef', 'mshtml', 'edgechromium', 'android']
+GUIType = ['qt', 'gtk', 'cef', 'mshtml', 'edgechromium', 'android']
 
 logger = logging.getLogger('pywebview')
-guilib: ModuleType | None = None
-forced_gui_: GUIType | None = None
+guilib = None
+forced_gui_ = None
 
 
-def initialize(forced_gui: GUIType | None = None):
+def initialize(forced_gui = None):
     def import_android():
         global guilib
 
@@ -76,7 +76,7 @@ def initialize(forced_gui: GUIType | None = None):
             logger.exception('pythonnet cannot be loaded')
             return False
 
-    def try_import(guis: list[Callable[[], Any]]) -> bool:
+    def try_import(guis: list) -> bool:
         while guis:
             import_func = guis.pop(0)
 

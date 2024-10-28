@@ -1,4 +1,4 @@
-from __future__ import annotations
+# from __future__ import annotations
 
 import inspect
 import logging
@@ -10,7 +10,7 @@ from typing import Any, Callable, TypeVar
 from urllib.parse import urljoin
 from uuid import uuid1
 
-from typing_extensions import Any, Concatenate, ParamSpec, TypeAlias
+# from typing_extensions import Any, Concatenate, ParamSpec, TypeAlias
 
 import webview.http as http
 from webview.errors import JavascriptException, WebViewException
@@ -22,20 +22,20 @@ from webview.dom.element import Element
 from webview.screen import Screen
 
 
-P = ParamSpec('P')
-T = TypeVar('T')
+# P = ParamSpec('P')
+# T = TypeVar('T')
 
 logger = logging.getLogger('pywebview')
 
 
-def _api_call(function: WindowFunc[P, T], event_type: str) -> WindowFunc[P, T]:
+def _api_call(function, event_type: str):
     """
     Decorator to call a pywebview API, checking for _webview_ready and raisings
     appropriate Exceptions on failure.
     """
 
     @wraps(function)
-    def wrapper(self: Window, *args: P.args, **kwargs: P.kwargs) -> T:
+    def wrapper(self, *args, **kwargs):
         event = self.events.loaded if event_type == 'loaded' else self.events.shown
 
         try:
@@ -52,11 +52,11 @@ def _api_call(function: WindowFunc[P, T], event_type: str) -> WindowFunc[P, T]:
     return wrapper
 
 
-def _shown_call(function: Callable[P, T]) -> Callable[P, T]:
+def _shown_call(function):
     return _api_call(function, 'shown')
 
 
-def _loaded_call(function: Callable[P, T]) -> Callable[P, T]:
+def _loaded_call(function):
     return _api_call(function, 'loaded')
 
 
@@ -72,15 +72,15 @@ class Window:
         self,
         uid: str,
         title: str,
-        url: str | None,
+        url: str,
         html: str = '',
         width: int = 800,
         height: int = 600,
-        x: int | None = None,
-        y: int | None = None,
+        x: int= None,
+        y: int= None,
         resizable: bool = True,
         fullscreen: bool = False,
-        min_size: tuple[int, int] = (200, 100),
+        min_size: tuple = (200, 100),
         hidden: bool = False,
         frameless: bool = False,
         easy_drag: bool = True,
@@ -97,11 +97,11 @@ class Window:
         zoomable: bool = False,
         draggable: bool = False,
         vibrancy: bool = False,
-        localization: Mapping[str, str] | None = None,
-        http_port: int | None = None,
-        server: type[http.ServerType] | None = None,
-        server_args: http.ServerArgs = {},
-        screen: Screen = None
+        localization = None,
+        http_port: int= None,
+        server= None,
+        server_args = {},
+        screen = None
     ) -> None:
         self.uid = uid
         self._title = title
@@ -163,7 +163,7 @@ class Window:
         self.gui = None
         self.native = None # set in the gui after window creation
 
-    def _initialize(self, gui, server: http.BottleServer | None = None):
+    def _initialize(self, gui, server: http.BottleServer= None):
         self.gui = gui
 
         self.localization = original_localization.copy()
@@ -235,7 +235,7 @@ class Window:
             self.gui.set_on_top(self.uid, on_top)
 
     @_loaded_call
-    def get_elements(self, selector: str) -> list[Element]:
+    def get_elements(self, selector: str) -> list:
         logger.warning(
             'This function is deprecated and will be removed in future releases. Use window.dom.get_elements() instead'
         )
@@ -299,7 +299,7 @@ class Window:
         return self.gui.get_cookies(self.uid)
 
     @_loaded_call
-    def get_current_url(self) -> str | None:
+    def get_current_url(self) -> str:
         """
         Get the URL currently loaded in the target webview
         """
@@ -391,7 +391,7 @@ class Window:
         self.gui.move(x, y, self.uid)
 
     @_loaded_call
-    def evaluate_js(self, script: str, callback: Callable[..., Any] | None = None, raw=False) -> Any:
+    def evaluate_js(self, script: str, callback: Callable[..., Any]= None, raw=False) -> Any:
         """
         Evaluate given JavaScript code and return the result
         :param script: The JavaScript code to be evaluated
@@ -478,8 +478,8 @@ class Window:
         directory: str = '',
         allow_multiple: bool = False,
         save_filename: str = '',
-        file_types: Sequence[str] = tuple(),
-    ) -> Sequence[str] | None:
+        file_types = tuple(),
+    ):
         """
         Create a file dialog
         :param dialog_type: Dialog type: open file (OPEN_DIALOG), save file (SAVE_DIALOG), open folder (OPEN_FOLDER). Default
@@ -516,7 +516,7 @@ class Window:
         if self.events.loaded.is_set():
             self.evaluate_js(f'window.pywebview._createApi({func_list})')
 
-    def _resolve_url(self, url: str) -> str | None:
+    def _resolve_url(self, url: str) -> str:
         if is_app(url):
             return self._url_prefix
         if is_local_url(url) and self._url_prefix and self._common_path is not None:
@@ -526,4 +526,4 @@ class Window:
             return url
 
 
-WindowFunc: TypeAlias = Callable[Concatenate[Window, P], T]
+# WindowFunc: TypeAlias = Callable[Concatenate[Window, P], T]

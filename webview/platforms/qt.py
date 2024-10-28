@@ -20,31 +20,53 @@ from webview.window import FixPoint, Window
 
 logger = logging.getLogger('pywebview')
 
-from qtpy import QtCore
-
-logger.debug('Using Qt %s' % QtCore.__version__)
-
-from qtpy import PYQT6, PYSIDE6
-from qtpy.QtCore import QJsonValue
-from qtpy.QtGui import QColor, QIcon, QScreen
-from qtpy.QtWidgets import QAction, QApplication, QFileDialog, QMainWindow, QMenuBar, QMessageBox
-
+# Force PySide2 to be tried first
 try:
-    from qtpy.QtNetwork import QSslCertificate, QSslConfiguration
-    from qtpy.QtWebChannel import QWebChannel
-    from qtpy.QtWebEngineWidgets import QWebEnginePage as QWebPage
-    from qtpy.QtWebEngineWidgets import QWebEngineProfile, QWebEngineSettings
-    from qtpy.QtWebEngineWidgets import QWebEngineView as QWebView
+    from PySide2 import QtCore
+
+    logger.debug('Using Qt %s' % QtCore.__version__)
+
+    PYQT6 = None
+    PYSIDE6 = None
+
+    from PySide2.QtCore import QJsonValue
+    from PySide2.QtGui import QColor, QIcon, QScreen
+    from PySide2.QtWidgets import QAction, QApplication, QFileDialog, QMainWindow, QMenuBar, QMessageBox
+    from PySide2.QtNetwork import QSslCertificate, QSslConfiguration
+    from PySide2.QtWebChannel import QWebChannel
+    from PySide2.QtWebEngineWidgets import  QWebEnginePage as QWebPage
+    from PySide2.QtWebEngineWidgets import  QWebEngineProfile, QWebEngineSettings
+    from PySide2.QtWebEngineWidgets import  QWebEngineView as QWebView
 
     renderer = 'qtwebengine'
     is_webengine = True
-except ImportError:
-    from PyQt5 import QtWebKitWidgets
-    from PyQt5.QtNetwork import QSslCertificate, QSslConfiguration
-    from PyQt5.QtWebKitWidgets import QWebPage, QWebView
 
-    is_webengine = False
-    renderer = 'qtwebkit'
+except ImportError:
+    from qtpy import QtCore
+
+    logger.debug('Using Qt %s' % QtCore.__version__)
+
+    from qtpy import PYQT6, PYSIDE6
+    from qtpy.QtCore import QJsonValue
+    from qtpy.QtGui import QColor, QIcon, QScreen
+    from qtpy.QtWidgets import QAction, QApplication, QFileDialog, QMainWindow, QMenuBar, QMessageBox
+
+    try:
+        from qtpy.QtNetwork import QSslCertificate, QSslConfiguration
+        from qtpy.QtWebChannel import QWebChannel
+        from qtpy.QtWebEngineWidgets import QWebEnginePage as QWebPage
+        from qtpy.QtWebEngineWidgets import QWebEngineProfile, QWebEngineSettings
+        from qtpy.QtWebEngineWidgets import QWebEngineView as QWebView
+
+        renderer = 'qtwebengine'
+        is_webengine = True
+    except ImportError:
+        from PyQt5 import QtWebKitWidgets
+        from PyQt5.QtNetwork import QSslCertificate, QSslConfiguration
+        from PyQt5.QtWebKitWidgets import QWebPage, QWebView
+
+        is_webengine = False
+        renderer = 'qtwebkit'
 
 if is_webengine and QtCore.QSysInfo.productType() in ['arch', 'manjaro', 'nixos', 'rhel', 'pop']:
     # I don't know why, but it's a common solution for #890 (White screen displayed)
@@ -199,7 +221,7 @@ class BrowserView(QMainWindow):
         def mouseMoveEvent(self, event):
             parent = self.parent()
             if (
-                parent.frameless and parent.easy_drag and event.buttons().value == 1
+                parent.frameless and parent.easy_drag and event.buttons() == 1
             ):  # left button is pressed
                 parent.move(event.globalPos() - self.drag_pos)
 
@@ -656,7 +678,7 @@ class BrowserView(QMainWindow):
             else:
                 self.webview.page().runJavaScript(script, return_result)
         except TypeError:
-            self.webview.page().runJavaScript(script)  # PySide2 & PySide6
+            self.webview.page().runJavaScript(script, 0, return_result)  # PySide2 & PySide6
         except AttributeError:
             result = self.webview.page().mainFrame().evaluateJavaScript(script)
             return_result(result)

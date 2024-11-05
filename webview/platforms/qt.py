@@ -4,6 +4,7 @@ import os
 import platform
 import socket
 import sys
+import time
 import typing as t
 import webbrowser
 from copy import copy, deepcopy
@@ -30,7 +31,7 @@ try:
     PYSIDE6 = None
 
     from PySide2.QtCore import QJsonValue
-    from PySide2.QtGui import QColor, QIcon, QScreen
+    from PySide2.QtGui import QColor, QIcon, QScreen, QGuiApplication
     from PySide2.QtWidgets import QAction, QApplication, QFileDialog, QMainWindow, QMenuBar, QMessageBox
     from PySide2.QtNetwork import QSslCertificate, QSslConfiguration
     from PySide2.QtWebChannel import QWebChannel
@@ -48,7 +49,7 @@ except ImportError:
 
     from qtpy import PYQT6, PYSIDE6
     from qtpy.QtCore import QJsonValue
-    from qtpy.QtGui import QColor, QIcon, QScreen
+    from qtpy.QtGui import QColor, QIcon, QScreen, QGuiApplication
     from qtpy.QtWidgets import QAction, QApplication, QFileDialog, QMainWindow, QMenuBar, QMessageBox
 
     try:
@@ -141,7 +142,7 @@ class BrowserView(QMainWindow):
         def __init__(self, parent=None):
             super(BrowserView.WebView, self).__init__(parent)
 
-            if parent.frameless and parent.easy_drag:
+            if parent.frameless and (parent.easy_drag or parent.pywebview_window.resizable):
                 QApplication.instance().installEventFilter(self)
                 self.setMouseTracking(True)
 
@@ -149,7 +150,13 @@ class BrowserView(QMainWindow):
             if parent.transparent:
                 self.setAttribute(QtCore.Qt.WA_TranslucentBackground)
                 self.setAttribute(QtCore.Qt.WA_OpaquePaintEvent, False)
+                self.setAttribute(QtCore.Qt.WA_NativeWindow, False)
                 self.setStyleSheet('background: transparent;')
+
+            # window stretch flags on mouse resize
+            self.stretchFlags = 0
+            self.stretchChangedCount = 0
+            self.stretching = None
 
         def contextMenuEvent(self, event):
             if _qt6:
@@ -212,10 +219,16 @@ class BrowserView(QMainWindow):
                 inspector = BrowserView(window)
                 inspector.show()
 
+        def mouseReleaseEvent(self, event):
+            self.stretchFlags = 0
+            self.stretching = None
+            
         def mousePressEvent(self, event):
             if event.button() == QtCore.Qt.LeftButton:
                 self.drag_pos = event.globalPos() - self.parent().frameGeometry().topLeft()
 
+            if self.stretchFlags:
+                self.stretching = True
             event.accept()
 
         def mouseMoveEvent(self, event):
@@ -225,12 +238,104 @@ class BrowserView(QMainWindow):
             ):  # left button is pressed
                 parent.move(event.globalPos() - self.drag_pos)
 
+        def mouseMoveEventForStretch(self, event) -> bool:
+            parent = self.parent()
+            margin = (10, 10, 10, 10)
+            
+            if not parent.frameless and not self.parent().isMaximized():
+                return False
+            
+            # left button is pressed
+            if event.buttons() == 1 and self.stretching:
+                oldRect = self.parent().frameGeometry()
+                newRect = copy(oldRect)
+                maxSize = self.parent().maximumSize()
+                minSize = self.parent().minimumSize()
+                mouse = event.globalPos()
+
+                if self.stretchFlags & 1:
+                    pos = QtCore.QPoint(mouse.x() - margin[0], mouse.y())
+                    newRect.setLeft(pos.x())
+
+                if self.stretchFlags & 2:
+                    pos = QtCore.QPoint(mouse.x(), mouse.y() - margin[0])
+                    newRect.setTop(pos.y())
+
+                if self.stretchFlags & 4:
+                    pos = QtCore.QPoint(mouse.x() + margin[0], mouse.y())
+                    newRect.setRight(pos.x())
+
+                if self.stretchFlags & 8:
+                    pos = QtCore.QPoint(mouse.x(), mouse.y() + margin[0])
+                    newRect.setBottom(pos.y())
+
+                if not hasattr(self, 'stretchTick'):
+                     self.stretchTick = time.perf_counter()
+
+                freq = 1.0 / 24
+                if newRect != oldRect and time.perf_counter() - self.stretchTick > freq:
+                    # print(f'setGeometry() {newRect}')
+                    self.parent().setGeometry(newRect)
+                    self.stretchTick = time.perf_counter()
+
+                return True
+
+            elif parent.pywebview_window.resizable:
+
+                pos = event.globalPos()
+                rect = self.parent().frameGeometry()
+
+                def in_range(v, start, end):
+                    return start <= v and v <= end
+
+                flags = 1  if in_range(pos.x(), rect.left(), rect.left() + margin[0]) else 0
+                flags |= 2 if in_range(pos.y(), rect.top(), rect.top() + margin[1]) else 0
+                flags |= 4 if in_range(pos.x(), rect.right() - margin[2], rect.right()) else 0
+                flags |= 8 if in_range(pos.y(), rect.bottom() - margin[3], rect.bottom()) else 0
+
+                cursors = { 
+                    1 : QtCore.Qt.SizeHorCursor,    # left 
+                    2 : QtCore.Qt.SizeVerCursor,    # top
+                    4 : QtCore.Qt.SizeHorCursor,    # right
+                    8 : QtCore.Qt.SizeVerCursor,    # bottom
+                    
+                    3 : QtCore.Qt.SizeFDiagCursor,  # top-left
+                    6 : QtCore.Qt.SizeBDiagCursor,  # right-top
+                    9 : QtCore.Qt.SizeBDiagCursor,  # left-bottom
+                    12 : QtCore.Qt.SizeFDiagCursor, # right-bottom
+                }
+
+                if flags != 0:
+                    cursor = cursors[flags]
+                    if self.stretchFlags != flags:
+                        QGuiApplication.setOverrideCursor(cursor)
+                        self.stretchChangedCount += 1
+                        # print(f'Change Cursor: {cursor}, {self.stretchChangedCount}')
+
+                    self.stretchFlags = flags
+                    event.accept()
+                    return True
+                
+                elif self.stretchChangedCount:
+                    # print(f'Restore Cursor: {self.stretchChangedCount}')
+                    while self.stretchChangedCount:
+                        QGuiApplication.restoreOverrideCursor()
+                        self.stretchChangedCount -= 1
+                    self.stretchFlags = 0
+                    
+            return False
+
         def eventFilter(self, object, event):
             if object.parent() == self:
                 if event.type() == QtCore.QEvent.MouseMove:
                     self.mouseMoveEvent(event)
                 elif event.type() == QtCore.QEvent.MouseButtonPress:
                     self.mousePressEvent(event)
+                elif event.type() == QtCore.QEvent.MouseButtonRelease:
+                    self.mouseReleaseEvent(event)
+
+            elif event.type() == QtCore.QEvent.MouseMove:
+                return self.mouseMoveEventForStretch(event)
 
             return False
 
